@@ -1,105 +1,99 @@
-# LEGS_POMDP: LanguagE and Gesture Object Search
+# Spot Arm Grasp & WASD Control
 
 ### Introduction
 
+This project provides an interactive interface for Boston Dynamics Spot’s arm, enabling both autonomous object grasping and manual arm manipulation via keyboard. It integrates real-time vision-based object selection, advanced grasp constraints, and live feedback, making it ideal for research and prototyping in robotics.
+
+---
+
 ### Demo
+
+- Click on an object in the camera feed to command Spot to grasp it.
+- After grasping, use WASD and other keys to manually control the arm and gripper in real time.
+
+---
 
 ### :rocket: Quick Start
 
-#### Setting Up the Conda Environment
+#### Setting Up the Python Environment
 
-   ```bash
-   conda env create -n LEGS 
-   conda activate LEGS
-   pip install -r requirements.txt
-   ```
-
-#### Setting Up SoM(Set-of-Mark Visual Prompting for GPT-4V)
-This project includes the Set-of-Mark (SoM) repository as a submodule for visual grounding tasks. Follow these steps to set up and use SoM:
-
-1. Clone the Repository with Submodules
-
-```
-git clone --recurse-submodules git@github.com:h2r/LEGS-POMDP.git
+```bash
+python3 -m venv my_spot_env
+source my_spot_env/bin/activate
+pip install bosdyn-client bosdyn-mission bosdyn-choreography-client bosdyn-orbit opencv-python numpy
 ```
 
-If you haven’t cloned this repository yet, use the --recurse-submodules flag to ensure the submodule is cloned as well:
+#### Running the Program
+
+```bash
+python3 arm_grasp_wasd.py --hostname <ROBOT_IP> [options]
 ```
-git submodule update --init --recursive
+
+**Common options:**
+- `-i`, `--image-source` : Camera image source (default: `frontleft_fisheye_image`)
+- `-t`, `--force-top-down-grasp` : Force top-down grasp
+- `-f`, `--force-horizontal-grasp` : Force horizontal grasp
+- `-r`, `--force-45-angle-grasp` : Force 45-degree angled grasp
+- `-s`, `--force-squeeze-grasp` : Force squeeze grasp
+
+**Example:**
+```bash
+python3 arm_grasp_wasd.py --hostname 192.168.80.3 -t
 ```
-2. Install dependencies and download the pretrained models
-```
-cd object_detection/SoM
-# install Deformable Convolution for Semantic-SAM
-cd ops && bash make.sh && cd ..
-# download pretrained models
-sh download_ckpt.sh
-```
+
+---
 
 ### System Implementation
 
-#### VLM
+#### Interactive Grasping
 
-**Step 1(Part 1): receive audio**
+- Select objects to grasp by clicking on live camera images.
+- The robot computes and executes a grasp using Spot’s manipulation API.
 
-Speech Recognition/speech_reg.py
+#### Manual Arm Control
 
-Use whisper to transcribe and save to a hidden temp txt. File in the folder. 
+- After grasping, control the arm in real time using intuitive WASD keyboard commands:
+  - `w/s`: move out/in
+  - `a/d`: rotate ccw/cw
+  - `r/f`: up/down
+  - `u/o`: +rx/-rx
+  - `i/k`: +ry/-ry
+  - `j/l`: +rz/-rz
+  - `m`: close gripper
+  - `n`: open gripper
+  - `z`: stow arm
+  - `x`: unstow arm
+  - `g`: grasp again
+  - `q`: quit
 
-Input source: Voice 
+#### Grasp Constraints
 
-Output: 
+- Supports top-down, horizontal, angled, and squeeze grasps (set via command-line flags).
+- Only one constraint can be active at a time.
 
-- .tmp/temp_audio.wav
-- .tmp/.transcription.txt
+#### Visual Feedback
 
-**Step 1(Part 2): Capture image (on Spot)**
+- Live OpenCV windows display camera images for object selection and provide immediate feedback on grasping actions.
 
-[TODO]
+---
 
-Input source: Spot camera
+### Technologies Used
 
-Output: /.tmp/image.png
+- **Languages:** Python 3
+- **Libraries:** Boston Dynamics Spot SDK, OpenCV, NumPy
 
-**Step 2: Segment image**
-SoM-Segmentation.py
+---
 
-Summary: Segmented image with marks on the image
+### Safety & Best Practices
 
-Input: ./.tmp/image.png
+- Ensure Spot is in a safe, open area before running.
+- Monitor the robot during operation, especially in manual mode.
+- Use E-Stop if any unsafe behavior is observed.
 
-Output: 
+---
 
-- Json: ./.tmp/detection_confidence.json(mark_id, bounding box, predicted_iou_score)
-- Png: /.tmp/annotated_image.png, /.tmp/mask.png (red channel corresponds to the mask id)
+### License
 
+This project is based on the Boston Dynamics SDK and is subject to the Boston Dynamics Software Development Kit License.
 
-**Step 3: Extract object from language**
-
-SoM_GPT4.py
-
-Summary: process the segmented image and transcription to select the likely objects for the fetching task. 
-
-Input: image[/.tmp/annotated_image.png], transcription[.tmp/.transcription.txt]
-
-Return: add "lang_prob"(0 or 1) to ./.tmp/detection_confidence.json
-
-
-**Step 4: Combine probability**
-
-Combined_probability.py
-
-Summary: process the raw probability to generate submodule and combined posterior probabilities 
-
-Input: json of language and gesture probability
-
-Output [./.tmp/detection_confidence.json]:
-
-- Language submodule probability: "lang_prob_normalized"
-
-- Gesture Submodule probability: TODO
-
-- Combined probability: TODO
-
-
-
+---
